@@ -19,14 +19,26 @@ export class DashboardService {
     private empresasRepository: Repository<Empresa>,
   ) {}
 
+  private getStartOfDay(date: string) {
+    const value = new Date(date);
+    value.setHours(0, 0, 0, 0);
+    return value;
+  }
+
+  private getEndOfDay(date: string) {
+    const value = new Date(date);
+    value.setHours(23, 59, 59, 999);
+    return value;
+  }
+
   async getKPIs(fechaInicio?: string, fechaFin?: string) {
     try {
       let egresadosQuery = this.egresadosRepository.createQueryBuilder('e');
       if (fechaInicio) {
-        egresadosQuery = egresadosQuery.where('e.created_at >= :inicio', { inicio: new Date(fechaInicio) });
+        egresadosQuery = egresadosQuery.where('e.created_at >= :inicio', { inicio: this.getStartOfDay(fechaInicio) });
       }
       if (fechaFin) {
-        egresadosQuery = egresadosQuery.andWhere('e.created_at <= :fin', { fin: new Date(fechaFin) });
+        egresadosQuery = egresadosQuery.andWhere('e.created_at <= :fin', { fin: this.getEndOfDay(fechaFin) });
       }
       const totalEgresados = await egresadosQuery.getCount();
 
@@ -34,19 +46,19 @@ export class DashboardService {
 
       let ofertasQuery = this.ofertasRepository.createQueryBuilder('o').where('o.activa = :activa', { activa: true });
       if (fechaInicio) {
-        ofertasQuery = ofertasQuery.andWhere('o.fecha_publicacion >= :inicio', { inicio: new Date(fechaInicio) });
+        ofertasQuery = ofertasQuery.andWhere('o.fecha_publicacion >= :inicio', { inicio: this.getStartOfDay(fechaInicio) });
       }
       if (fechaFin) {
-        ofertasQuery = ofertasQuery.andWhere('o.fecha_publicacion <= :fin', { fin: new Date(fechaFin) });
+        ofertasQuery = ofertasQuery.andWhere('o.fecha_publicacion <= :fin', { fin: this.getEndOfDay(fechaFin) });
       }
       const ofertasActivas = await ofertasQuery.getCount();
       
       let empleadosQuery = this.egresadosRepository.createQueryBuilder('e').where('e.empleado_actualmente = :empl', { empl: true });
       if (fechaInicio) {
-        empleadosQuery = empleadosQuery.andWhere('e.created_at >= :inicio', { inicio: new Date(fechaInicio) });
+        empleadosQuery = empleadosQuery.andWhere('e.created_at >= :inicio', { inicio: this.getStartOfDay(fechaInicio) });
       }
       if (fechaFin) {
-        empleadosQuery = empleadosQuery.andWhere('e.created_at <= :fin', { fin: new Date(fechaFin) });
+        empleadosQuery = empleadosQuery.andWhere('e.created_at <= :fin', { fin: this.getEndOfDay(fechaFin) });
       }
       const egresadosEmpleados = await empleadosQuery.getCount();
 
@@ -60,10 +72,10 @@ export class DashboardService {
         .addSelect('COUNT(*)', 'value')
         .groupBy('e.carrera');
       if (fechaInicio) {
-        byCarreraQuery = byCarreraQuery.where('e.created_at >= :inicio', { inicio: new Date(fechaInicio) });
+        byCarreraQuery = byCarreraQuery.where('e.created_at >= :inicio', { inicio: this.getStartOfDay(fechaInicio) });
       }
       if (fechaFin) {
-        byCarreraQuery = byCarreraQuery.andWhere('e.created_at <= :fin', { fin: new Date(fechaFin) });
+        byCarreraQuery = byCarreraQuery.andWhere('e.created_at <= :fin', { fin: this.getEndOfDay(fechaFin) });
       }
       const byCarrera = await byCarreraQuery.getRawMany();
 

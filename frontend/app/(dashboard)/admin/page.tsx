@@ -45,8 +45,7 @@ export default function AdminDashboard() {
 
   const [mounted, setMounted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Initialize date range: last 12 months to today
+
   const getDefaultDateRange = () => {
     const today = new Date();
     const oneYearAgo = new Date(today);
