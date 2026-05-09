@@ -45,10 +45,16 @@ export default function AdminDashboard() {
 
   const [mounted, setMounted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [dateRange, setDateRange] = useState({
-    from: new Date('1950-01-01'),
-    to: new Date(),
-  });
+  
+  // Initialize date range: last 12 months to today
+  const getDefaultDateRange = () => {
+    const today = new Date();
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    return { from: oneYearAgo, to: today };
+  };
+
+  const [dateRange, setDateRange] = useState(getDefaultDateRange());
 
   const [kpis, setKpis] = useState<any>(null);
   const [evolucionData, setEvolucionData] = useState<any[]>([]);
