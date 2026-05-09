@@ -7,12 +7,14 @@ import { AuthController } from './auth.controller';
 import { User } from './entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
 
+const jwtSecret = process.env.JWT_SECRET || 'SUPER_SECRET_KEY_2026';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule,
     JwtModule.register({
-      secret: 'SUPER_SECRET_KEY_2026', // En producción usar variables de entorno
+      secret: jwtSecret,
       signOptions: { expiresIn: '1d' },
     }),
   ],

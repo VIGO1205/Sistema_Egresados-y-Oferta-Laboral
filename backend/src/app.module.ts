@@ -13,11 +13,12 @@ import { ReportesModule } from './modules/reportes/reportes.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'postgres',
-      port: parseInt(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USER || 'admin',
-      password: process.env.DB_PASSWORD || 'secure_password',
-      database: process.env.DB_NAME || 'egresados_db',
+      url: process.env.DATABASE_URL,
+      host: process.env.DATABASE_URL ? undefined : process.env.DB_HOST || 'postgres',
+      port: process.env.DATABASE_URL ? undefined : parseInt(process.env.DB_PORT || '5432', 10),
+      username: process.env.DATABASE_URL ? undefined : process.env.DB_USER || 'admin',
+      password: process.env.DATABASE_URL ? undefined : process.env.DB_PASSWORD || 'secure_password',
+      database: process.env.DATABASE_URL ? undefined : process.env.DB_NAME || 'egresados_db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: process.env.DB_SYNCHRONIZE === 'true',
       logging: true,

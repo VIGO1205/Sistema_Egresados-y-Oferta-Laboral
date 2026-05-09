@@ -10,7 +10,28 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { SerializeResponseInterceptor } from './common/interceptors/serialize-response.interceptor';
 
+function maskPresence(value: string | undefined): string {
+  return value ? 'yes' : 'no';
+}
+
+function getDatabaseHost(value: string | undefined): string {
+  if (!value) {
+    return 'missing';
+  }
+
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return 'invalid-url';
+  }
+}
+
 async function bootstrap() {
+  console.log('[env] DATABASE_URL:', maskPresence(process.env.DATABASE_URL), getDatabaseHost(process.env.DATABASE_URL));
+  console.log('[env] REDIS_HOST:', maskPresence(process.env.REDIS_HOST));
+  console.log('[env] REDIS_PORT:', maskPresence(process.env.REDIS_PORT));
+  console.log('[env] JWT_SECRET:', maskPresence(process.env.JWT_SECRET));
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   app.useGlobalPipes(new ValidationPipe());
