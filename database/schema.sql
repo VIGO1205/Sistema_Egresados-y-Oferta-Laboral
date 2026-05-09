@@ -142,7 +142,7 @@ CREATE TABLE notificaciones (
 
 CREATE TABLE reportes ( 
     id SERIAL PRIMARY KEY, 
-    codigo VARCHAR(20) UNIQUE,
+    codigo VARCHAR(255) UNIQUE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, 
     tipo_reporte VARCHAR(100) NOT NULL, 
     parametros_filtro JSONB, 
