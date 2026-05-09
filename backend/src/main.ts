@@ -41,9 +41,16 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads',
   });
-  
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://sistema-egresados-y-oferta-laboral-rho.vercel.app',
+    'https://sistema-egresados-y-oferta-laboral-git-main-vigo1205s-projects.vercel.app',
+  ].filter((origin): origin is string => Boolean(origin));
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: allowedOrigins,
     credentials: true,
   });
 
