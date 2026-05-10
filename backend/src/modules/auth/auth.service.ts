@@ -143,7 +143,8 @@ export class AuthService {
     console.log('[MAILER] Iniciando envío de código de recuperación...');
     
     const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com';
-    const smtpPort = Number(process.env.SMTP_PORT ?? '587');
+    // Usar puerto 465 por defecto (TLS implícito) para mejor compatibilidad con Render
+    const smtpPort = Number(process.env.SMTP_PORT ?? '465');
     const smtpUser = process.env.SMTP_USER ?? process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS ?? process.env.GMAIL_APP_PASSWORD;
 
@@ -157,7 +158,7 @@ export class AuthService {
     const transport = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpPort === 465,
+      secure: true, // TLS implícito para puerto 465
       auth: {
         user: smtpUser,
         pass: smtpPass,
