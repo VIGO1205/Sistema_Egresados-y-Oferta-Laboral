@@ -94,13 +94,16 @@ export class AuthService {
     const code = this.generateRecoveryCode();
     user.recoveryCode = code;
     await this.usersRepository.save(user);
+    console.log(`[AUTH] Recovery code generated and saved for user ${user.id}`);
 
     try {
       await this.sendRecoveryCodeEmail(recoveryEmail, user.email, code);
+      console.log(`[AUTH] Email sent successfully`);
     } catch (error) {
+      console.error(`[AUTH] Email send failed, clearing recovery code. Error:`, error instanceof Error ? error.message : String(error));
       user.recoveryCode = null;
       await this.usersRepository.save(user);
-      throw new InternalServerErrorException('No se pudo enviar el correo de recuperación. Revisa la configuración de Gmail del servidor.');
+      throw new InternalServerErrorException(`No se pudo enviar el correo de recuperación: ${error instanceof Error ? error.message : 'Error desconocido'}. Verifica la configuración de Gmail del servidor.`);
     }
 
     return { recoveryEmail };
@@ -137,13 +140,18 @@ export class AuthService {
   }
 
   private async sendRecoveryCodeEmail(recoveryEmail: string, accountEmail: string, code: string) {
+    console.log('[MAILER] Iniciando envío de código de recuperación...');
+    
     const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com';
     const smtpPort = Number(process.env.SMTP_PORT ?? '587');
     const smtpUser = process.env.SMTP_USER ?? process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS ?? process.env.GMAIL_APP_PASSWORD;
 
+    console.log(`[MAILER] Config: host=${smtpHost}, port=${smtpPort}, user=${smtpUser ? smtpUser.substring(0, 5) + '...' : 'MISSING'}`);
+
     if (!smtpUser || !smtpPass) {
-      throw new InternalServerErrorException('Faltan las variables SMTP_USER y SMTP_PASS, o sus alias GMAIL_USER y GMAIL_APP_PASSWORD.');
+      console.error('[MAILER] ERROR: Missing SMTP_USER or SMTP_PASS');
+      throw new InternalServerErrorException('Faltan las variables SMTP_USER y SMTP_PASS, o sus aliases GMAIL_USER y GMAIL_APP_PASSWORD.');
     }
 
     const transport = nodemailer.createTransport({
@@ -154,6 +162,8 @@ export class AuthService {
         user: smtpUser,
         pass: smtpPass,
       },
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     const html = `
@@ -260,13 +270,33 @@ export class AuthService {
       </html>
     `;
 
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM ?? process.env.GMAIL_FROM ?? `Sistema Egresados <${smtpUser}>`,
-      to: recoveryEmail,
-      subject: 'Código de recuperación de contraseña — Sistema Egresados',
-      html,
-    });
+    console.log(`[MAILER] Enviando a: ${recoveryEmail} (account: ${accountEmail})`);
+    console.log(`[MAILER] Intentando conectar a SMTP...`);
 
-    console.log(`[MAILER] sent messageId=${info.messageId} accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)}`);
+    try {
+      const info = await Promise.race([
+        transport.sendMail({
+          from: process.env.SMTP_FROM ?? process.env.GMAIL_FROM ?? `Sistema Egresados <${smtpUser}>`,
+          to: recoveryEmail,
+          subject: 'Código de recuperación de contraseña — Sistema Egresados',
+          html,
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SMTP timeout: No response after 10 seconds')), 10000)
+        ),
+      ]);
+      
+      console.log(`[MAILER] ✓ Email enviado exitosamente. messageId=${info.messageId}`);
+      console.log(`[MAILER] Accepted: ${JSON.stringify(info.accepted)}`);
+    } catch (error) {
+      console.error(`[MAILER] ✗ Error al enviar email:`, error instanceof Error ? error.message : String(error));
+      throw error;
+    } finally {
+      try {
+        transport.close();
+      } catch (e) {
+        console.log('[MAILER] Transport close error (non-critical):', e instanceof Error ? e.message : String(e));
+      }
+    }
   }
 }
