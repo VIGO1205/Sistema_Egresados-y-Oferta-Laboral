@@ -274,7 +274,7 @@ export class AuthService {
     console.log(`[MAILER] Intentando conectar a SMTP...`);
 
     try {
-      const info = await Promise.race([
+      const info = (await Promise.race([
         transport.sendMail({
           from: process.env.SMTP_FROM ?? process.env.GMAIL_FROM ?? `Sistema Egresados <${smtpUser}>`,
           to: recoveryEmail,
@@ -284,7 +284,7 @@ export class AuthService {
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('SMTP timeout: No response after 10 seconds')), 10000)
         ),
-      ]);
+      ])) as any;
       
       console.log(`[MAILER] ✓ Email enviado exitosamente. messageId=${info.messageId}`);
       console.log(`[MAILER] Accepted: ${JSON.stringify(info.accepted)}`);
