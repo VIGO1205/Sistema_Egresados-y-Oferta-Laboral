@@ -82,8 +82,9 @@ export class AuthService {
       }
     }
 
+    // Fallback: usar el email del sistema si no hay email_recuperacion
     if (!recoveryEmail) {
-      throw new UnauthorizedException('No tienes configurado un correo de recuperación. Contacta al administrador para registrar uno.');
+      recoveryEmail = user.email;
     }
 
     if (!this.isValidEmail(recoveryEmail)) {
