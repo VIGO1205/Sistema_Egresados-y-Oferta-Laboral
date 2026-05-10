@@ -141,31 +141,19 @@ export class AuthService {
 
   private async sendRecoveryCodeEmail(recoveryEmail: string, accountEmail: string, code: string) {
     console.log('[MAILER] Iniciando envío de código de recuperación...');
-    
+
     const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com';
-    // Usar puerto 465 por defecto (TLS implícito) para mejor compatibilidad con Render
     const smtpPort = Number(process.env.SMTP_PORT ?? '465');
     const smtpUser = process.env.SMTP_USER ?? process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS ?? process.env.GMAIL_APP_PASSWORD;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const fromAddress =
+      process.env.SMTP_FROM ??
+      process.env.GMAIL_FROM ??
+      process.env.RESEND_FROM ??
+      (smtpUser ? `Sistema Egresados <${smtpUser}>` : 'Sistema Egresados <onboarding@resend.dev>');
 
     console.log(`[MAILER] Config: host=${smtpHost}, port=${smtpPort}, user=${smtpUser ? smtpUser.substring(0, 5) + '...' : 'MISSING'}`);
-
-    if (!smtpUser || !smtpPass) {
-      console.error('[MAILER] ERROR: Missing SMTP_USER or SMTP_PASS');
-      throw new InternalServerErrorException('Faltan las variables SMTP_USER y SMTP_PASS, o sus aliases GMAIL_USER y GMAIL_APP_PASSWORD.');
-    }
-
-    const transport = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: true, // TLS implícito para puerto 465
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
-    });
 
     const html = `
       <!doctype html>
@@ -271,13 +259,69 @@ export class AuthService {
       </html>
     `;
 
+    if (resendApiKey) {
+      console.log('[MAILER] RESEND_API_KEY detectada. Enviando por API HTTPS (puerto 443)...');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: [recoveryEmail],
+            subject: 'Código de recuperación de contraseña — Sistema Egresados',
+            html,
+          }),
+          signal: controller.signal,
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(`Resend API error ${response.status}: ${JSON.stringify(payload)}`);
+        }
+
+        console.log(`[MAILER] ✓ Email enviado por Resend. id=${payload?.id ?? 'N/A'}`);
+        return;
+      } catch (error) {
+        console.error('[MAILER] ✗ Error con Resend API:', error instanceof Error ? error.message : String(error));
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    if (!smtpUser || !smtpPass) {
+      console.error('[MAILER] ERROR: Missing SMTP_USER or SMTP_PASS and RESEND_API_KEY is not configured');
+      throw new InternalServerErrorException(
+        'No hay proveedor de correo configurado. Define RESEND_API_KEY o configura SMTP_USER/SMTP_PASS.',
+      );
+    }
+
+    const transport = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: true,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
+    });
+
     console.log(`[MAILER] Enviando a: ${recoveryEmail} (account: ${accountEmail})`);
     console.log(`[MAILER] Intentando conectar a SMTP...`);
 
     try {
       const info = (await Promise.race([
         transport.sendMail({
-          from: process.env.SMTP_FROM ?? process.env.GMAIL_FROM ?? `Sistema Egresados <${smtpUser}>`,
+          from: fromAddress,
           to: recoveryEmail,
           subject: 'Código de recuperación de contraseña — Sistema Egresados',
           html,
