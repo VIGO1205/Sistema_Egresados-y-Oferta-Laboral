@@ -158,6 +158,12 @@ export class EgresadosService {
 
     console.log('>>> CAMPOS A ACTUALIZAR:', JSON.stringify(updateFields, null, 2));
 
+    // Incluir emailRecuperacion en updateFields si viene en updateData
+    if (updateData.emailRecuperacion !== undefined) {
+      updateFields.emailRecuperacion = updateData.emailRecuperacion;
+      console.log('>>> INCLUYENDO EMAIL RECUPERACIÓN EN ACTUALIZACIÓN:', updateData.emailRecuperacion);
+    }
+
     if (Object.keys(updateFields).length > 0) {
       await this.egresadosRepository
         .createQueryBuilder()
@@ -169,7 +175,7 @@ export class EgresadosService {
     }
 
     if (egresado.user?.id) {
-      console.log('>>> VERIFICANDO CAMPOS DE EMAIL - emailSistema:', updateData.emailSistema, 'emailRecuperacion:', updateData.emailRecuperacion);
+      console.log('>>> VERIFICANDO CAMPOS DE EMAIL - emailSistema:', updateData.emailSistema);
       if (updateData.emailSistema !== undefined && updateData.emailSistema !== null && updateData.emailSistema !== '') {
         console.log('>>> ACTUALIZANDO EMAIL SISTEMA A:', updateData.emailSistema);
         await this.usersRepository
@@ -182,27 +188,10 @@ export class EgresadosService {
       } else {
         console.log('>>> EMAIL SISTEMA NO FUE ACTUALIZADO - Condición no cumplida');
       }
-
-      if (updateData.emailRecuperacion !== undefined) {
-        console.log('>>> ACTUALIZANDO EMAIL RECUPERACIÓN A:', updateData.emailRecuperacion);
-        await this.usersRepository
-          .createQueryBuilder()
-          .update(User)
-          .set({ emailRecuperacion: updateData.emailRecuperacion })
-          .where('id = :userId', { userId: egresado.user.id })
-          .execute();
-        console.log('>>> SINCRONIZADO EMAIL DE RECUPERACIÓN EN TABLA USERS');
-      }
     }
 
     // Retornar el perfil completo con datos sincronizados
     const updatedEgresado = await this.findOne(id);
-    
-    // Enriquecer respuesta con datos de la tabla users para asegurar consistencia
-    if (updatedEgresado.user) {
-      updatedEgresado.user = await this.usersRepository.findOne({ where: { id: updatedEgresado.user.id } });
-    }
-    
     return updatedEgresado;
   }
 
