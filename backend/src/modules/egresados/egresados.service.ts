@@ -184,6 +184,7 @@ export class EgresadosService {
       }
 
       if (updateData.emailRecuperacion !== undefined) {
+        console.log('>>> ACTUALIZANDO EMAIL RECUPERACIÓN A:', updateData.emailRecuperacion);
         await this.usersRepository
           .createQueryBuilder()
           .update(User)
@@ -194,7 +195,15 @@ export class EgresadosService {
       }
     }
 
-    return this.findOne(id);
+    // Retornar el perfil completo con datos sincronizados
+    const updatedEgresado = await this.findOne(id);
+    
+    // Enriquecer respuesta con datos de la tabla users para asegurar consistencia
+    if (updatedEgresado.user) {
+      updatedEgresado.user = await this.usersRepository.findOne({ where: { id: updatedEgresado.user.id } });
+    }
+    
+    return updatedEgresado;
   }
 
   async getEstadisticasEgresado(egresadoId: number): Promise<any> {

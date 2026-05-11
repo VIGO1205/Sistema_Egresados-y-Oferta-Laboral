@@ -68,11 +68,11 @@ export class AuthService {
       throw new UnauthorizedException('No se encontró una cuenta con ese correo');
     }
 
-    // Buscamos el correo de recuperación en la tabla egresados si no está en users
+    // Buscar el correo de recuperación en la tabla users (campo email_recuperacion)
     let recoveryEmail = user.emailRecuperacion;
     
     if (!recoveryEmail) {
-      // Intentar buscar en la tabla de egresados
+      // Intentar buscar en la tabla de egresados como fallback
       const egresado = await this.usersRepository.query(
         'SELECT email_recuperacion FROM egresados WHERE user_id = $1',
         [user.id]
@@ -82,9 +82,9 @@ export class AuthService {
       }
     }
 
-    // Fallback: usar el email del sistema si no hay email_recuperacion
+    // Si aún no hay email de recuperación, error explícito
     if (!recoveryEmail) {
-      recoveryEmail = user.email;
+      throw new UnauthorizedException('No tienes configurado un correo de recuperación. Accede a "Mi Perfil" y configura uno antes de continuar.');
     }
 
     if (!this.isValidEmail(recoveryEmail)) {
