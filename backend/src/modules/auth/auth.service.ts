@@ -146,12 +146,10 @@ export class AuthService {
     const smtpPort = Number(process.env.SMTP_PORT ?? '465');
     const smtpUser = process.env.SMTP_USER ?? process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS ?? process.env.GMAIL_APP_PASSWORD;
-    const resendApiKey = process.env.RESEND_API_KEY;
     const fromAddress =
       process.env.SMTP_FROM ??
       process.env.GMAIL_FROM ??
-      process.env.RESEND_FROM ??
-      (smtpUser ? `Sistema Egresados <${smtpUser}>` : 'Sistema Egresados <onboarding@resend.dev>');
+      (smtpUser ? `Sistema Egresados <${smtpUser}>` : 'Sistema Egresados <no-reply@system-egresados.local>');
 
     console.log(`[MAILER] Config: host=${smtpHost}, port=${smtpPort}, user=${smtpUser ? smtpUser.substring(0, 5) + '...' : 'MISSING'}`);
 
@@ -259,47 +257,10 @@ export class AuthService {
       </html>
     `;
 
-    if (resendApiKey) {
-      console.log('[MAILER] RESEND_API_KEY detectada. Enviando por API HTTPS (puerto 443)...');
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      try {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: fromAddress,
-            to: [recoveryEmail],
-            subject: 'Código de recuperación de contraseña — Sistema Egresados',
-            html,
-          }),
-          signal: controller.signal,
-        });
-
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(`Resend API error ${response.status}: ${JSON.stringify(payload)}`);
-        }
-
-        console.log(`[MAILER] ✓ Email enviado por Resend. id=${payload?.id ?? 'N/A'}`);
-        return;
-      } catch (error) {
-        console.error('[MAILER] ✗ Error con Resend API:', error instanceof Error ? error.message : String(error));
-        throw error;
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    }
-
     if (!smtpUser || !smtpPass) {
-      console.error('[MAILER] ERROR: Missing SMTP_USER or SMTP_PASS and RESEND_API_KEY is not configured');
+      console.error('[MAILER] ERROR: Missing SMTP_USER or SMTP_PASS');
       throw new InternalServerErrorException(
-        'No hay proveedor de correo configurado. Define RESEND_API_KEY o configura SMTP_USER/SMTP_PASS.',
+        'No hay proveedor de correo configurado. Configura SMTP_USER/SMTP_PASS o GMAIL_USER/GMAIL_APP_PASSWORD.',
       );
     }
 
