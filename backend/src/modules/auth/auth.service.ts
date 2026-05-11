@@ -144,6 +144,9 @@ export class AuthService {
 
     const smtpHost = process.env.SMTP_HOST ?? 'smtp.gmail.com';
     const smtpPort = Number(process.env.SMTP_PORT ?? '465');
+    const smtpSecure = process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE.toLowerCase() === 'true'
+      : smtpPort === 465;
     const smtpUser = process.env.SMTP_USER ?? process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS ?? process.env.GMAIL_APP_PASSWORD;
     const fromAddress =
@@ -267,30 +270,26 @@ export class AuthService {
     const transport = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: true,
+      secure: smtpSecure,
+      requireTLS: !smtpSecure,
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
+      connectionTimeout: 30000,
+      socketTimeout: 30000,
     });
 
     console.log(`[MAILER] Enviando a: ${recoveryEmail} (account: ${accountEmail})`);
     console.log(`[MAILER] Intentando conectar a SMTP...`);
 
     try {
-      const info = (await Promise.race([
-        transport.sendMail({
-          from: fromAddress,
-          to: recoveryEmail,
-          subject: 'Código de recuperación de contraseña — Sistema Egresados',
-          html,
-        }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('SMTP timeout: No response after 10 seconds')), 10000)
-        ),
-      ])) as any;
+      const info = (await transport.sendMail({
+        from: fromAddress,
+        to: recoveryEmail,
+        subject: 'Código de recuperación de contraseña — Sistema Egresados',
+        html,
+      })) as any;
       
       console.log(`[MAILER] ✓ Email enviado exitosamente. messageId=${info.messageId}`);
       console.log(`[MAILER] Accepted: ${JSON.stringify(info.accepted)}`);
