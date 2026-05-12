@@ -470,6 +470,7 @@ export class ReportesService {
       LEFT JOIN postulaciones p ON p.oferta_id = o.id
       GROUP BY e.id, e.nombre_empresa, e.sector
       ORDER BY COUNT(p.id) DESC, COUNT(DISTINCT o.id) DESC, e.nombre_empresa ASC
+      LIMIT 100
     `);
 
     const empresasConActividad = empresas.filter((empresa: any) => Number(empresa.ofertas || 0) > 0 || Number(empresa.postulaciones || 0) > 0);
