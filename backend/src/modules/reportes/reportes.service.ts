@@ -128,7 +128,12 @@ export class ReportesService {
           htmlContent = await this.generarHTMLGenerico(tipoReporte, filtros);
       } 
        
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 30000 }); 
+      this.logger.log(`HTML de reporte ${reporteId} generado con ${htmlContent.length} caracteres`);
+      try {
+        await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 0 }); 
+      } catch (error) {
+        this.logger.warn(`Advertencia al cargar HTML del reporte ${reporteId}: ${error.message}`);
+      }
        
       const pdfBuffer = await page.pdf({ 
         format: 'A4', 
@@ -684,7 +689,8 @@ export class ReportesService {
       browser = await puppeteer.launch(launchOptions);
       const page = await browser.newPage();
       
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 30000 });
+      this.logger.log(`HTML de informe completo ${reporteId} generado con ${htmlContent.length} caracteres`);
+      await page.setContent(htmlContent, { waitUntil: 'load', timeout: 30000 });
 
       const pdfBuffer = await page.pdf({
         format: 'A4',
@@ -757,9 +763,9 @@ export class ReportesService {
       browser = await puppeteer.launch(launchOptions);
       const page = await browser.newPage();
       
-      // Usar waitUntil: 'load' es más confiable que 'networkidle0'
+      // El HTML es local, así que basta con DOMContentLoaded y sin timeout de navegación.
       try {
-        await page.setContent(htmlContent, { waitUntil: 'load', timeout: 30000 });
+        await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 0 });
       } catch (error) {
         this.logger.warn(`Advertencia al cargar HTML: ${error.message}`);
         // Continuar de todas formas
