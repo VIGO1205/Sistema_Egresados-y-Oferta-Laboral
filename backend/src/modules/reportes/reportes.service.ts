@@ -197,7 +197,7 @@ export class ReportesService {
   }
 
   private async generarHTMLEmpleabilidad(filtros: any): Promise<string> {
-    const filtrosReporte = { ...filtros, page: 1, limit: filtros?.limit ?? 1000000 };
+    const filtrosReporte = { ...filtros, page: 1, limit: filtros?.limit ?? 100 };
     const { data } = await this.egresadosService.findAll(filtrosReporte);
 
     // Agrupar por carrera
@@ -286,7 +286,7 @@ export class ReportesService {
     const filtrosReporte = {
       ...filtros,
       page: 1,
-      limit: filtros?.limit ?? 1000000,
+      limit: filtros?.limit ?? 100,
     };
 
     const { data } = await this.egresadosService.findAll(filtrosReporte);
@@ -356,7 +356,7 @@ export class ReportesService {
   }
 
   private async generarHTMLDemandaHabilidades(filtros: any): Promise<string> {
-    const filtrosReporte = { ...filtros, page: 1, limit: filtros?.limit ?? 1000000 };
+    const filtrosReporte = { ...filtros, page: 1, limit: filtros?.limit ?? 100 };
     const { data } = await this.egresadosService.findAll(filtrosReporte);
 
     const contador: Record<string, number> = {};
@@ -408,7 +408,7 @@ export class ReportesService {
   }
 
   private async generarHTMLComparativoCohorte(filtros: any): Promise<string> {
-    const filtrosReporte = { ...filtros, page: 1, limit: filtros?.limit ?? 1000000 };
+    const filtrosReporte = { ...filtros, page: 1, limit: filtros?.limit ?? 100 };
     const { data } = await this.egresadosService.findAll(filtrosReporte);
 
     const cohorts: Record<string, { total: number; empleados: number }> = {};
@@ -606,7 +606,8 @@ export class ReportesService {
   }
 
   private async generarHTMLOfertas(filtros: any): Promise<string> {
-    const ofertas = await this.ofertasService.findAllOfertas(filtros);
+    const todasLasOfertas = await this.ofertasService.findAllOfertas(filtros);
+    const ofertas = todasLasOfertas.slice(0, 100);
     return `
       <!DOCTYPE html> 
       <html> 
